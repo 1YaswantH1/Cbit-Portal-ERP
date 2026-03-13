@@ -1,29 +1,53 @@
 .clubs-page {
     max-width: 1200px;
     margin: auto;
-    padding: 20px;
+    padding: 30px 20px;
+    animation: fadeIn 0.6s ease;
 }
+
+/* GRID */
 
 .clubs-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-    margin-top: 10px;
+    gap: 28px;
+    margin-top: 20px;
 }
+
+/* CARD */
 
 .club-card {
     background: var(--card-bg, white);
-    border-radius: 16px;
-    padding: 20px;
+    border-radius: 18px;
+    padding: 22px;
     text-align: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    transition: all 0.25s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.35s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glow effect */
+
+.club-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(37, 99, 235, 0.12), transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.club-card:hover::before {
+    opacity: 1;
 }
 
 .club-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
 }
+
+/* IMAGE */
 
 .club-image {
     width: 100%;
@@ -31,55 +55,110 @@
     object-fit: contain;
     border-radius: 12px;
     background: #f3f6ff;
-    padding: 10px;
+    padding: 12px;
+    transition: transform 0.35s ease;
 }
 
-.club-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-top: 14px;
-    color: var(--text-color, #1f2937);
+.club-card:hover .club-image {
+    transform: scale(1.08);
 }
+
+/* TITLE */
+
+.club-title {
+    font-size: 19px;
+    font-weight: 600;
+    margin-top: 16px;
+    color: var(--text-color, #1f2937);
+    letter-spacing: 0.2px;
+}
+
+/* BUTTON */
 
 .club-button {
     display: inline-block;
-    margin-top: 12px;
-    padding: 8px 16px;
-    background: #2563eb;
+    margin-top: 14px;
+    padding: 9px 18px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
     color: white;
     text-decoration: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
-    transition: 0.25s;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .club-button:hover {
-    background: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
 }
+
+/* FILTERS */
 
 .club-filters {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: 30px;
+    gap: 12px;
+    margin-bottom: 28px;
 }
 
+/* FILTER PILLS */
+
 .filter-btn {
-    padding: 8px 16px;
+    padding: 9px 18px;
     border: none;
-    border-radius: 20px;
+    border-radius: 30px;
     background: #e5e7eb;
     cursor: pointer;
     font-size: 14px;
-    transition: 0.2s;
+    font-weight: 500;
+    transition: all 0.25s ease;
 }
 
 .filter-btn:hover {
     background: #d1d5db;
+    transform: translateY(-2px);
 }
 
 .filter-btn.active {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+    transform: scale(1.05);
+}
+
+/* PAGE FADE */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.filter-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.filter-toggle {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
     background: #2563eb;
     color: white;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.filter-toggle:hover {
+    background: #1e40af;
 }

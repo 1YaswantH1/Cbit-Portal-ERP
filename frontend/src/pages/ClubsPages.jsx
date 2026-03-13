@@ -5,6 +5,7 @@ import "../css/clubs.css";
 function ClubsPage() {
   const [clubs, setClubs] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetch("/data/clubs.csv")
@@ -19,7 +20,10 @@ function ClubsPage() {
       });
   }, []);
 
-  const categories = ["All", ...new Set(clubs.map((club) => club.category))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(clubs.map((club) => club.category))).sort(),
+  ];
 
   const toggleCategory = (category) => {
     if (category === "All") {
@@ -41,20 +45,33 @@ function ClubsPage() {
 
   return (
     <div className="clubs-page">
-      {/* FILTER BUTTONS */}
-      <div className="club-filters">
-        {categories.map((cat, index) => (
-          <button
-            key={index}
-            className={`filter-btn ${
-              selectedCategories.includes(cat) ? "active" : ""
-            }`}
-            onClick={() => toggleCategory(cat)}
-          >
-            {cat}
-          </button>
-        ))}
+      {/* FILTER BUTTON */}
+      <div className="filter-header">
+        <button
+          className="filter-toggle"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          Filter by Category
+        </button>
       </div>
+
+      {/* FILTER PANEL */}
+      {showFilters && (
+        <div className="club-filters">
+          {categories.map((cat, index) => (
+            <button
+              key={index}
+              className={`filter-btn ${
+                selectedCategories.includes(cat) ? "active" : ""
+              }`}
+              onClick={() => toggleCategory(cat)}
+            >
+              {selectedCategories.includes(cat) && cat !== "All" ? "✓ " : ""}
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* CLUBS GRID */}
       <div className="clubs-container">
