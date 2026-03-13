@@ -6,11 +6,14 @@ const cors = require("cors");
 // const attendanceRoute = require("./routes/attendance");
 const placementsRoute = require("./routes/placements");
 const papersRoute = require("./routes/papers");
+const attendanceRoute = require("./routes/attendence");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/", attendanceRoute);
 
 app.use("/papers", papersRoute);
 app.use("/placements", placementsRoute);

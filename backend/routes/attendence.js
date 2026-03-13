@@ -1,67 +1,19 @@
-const { Builder, By, until } = require("selenium-webdriver");
+const express = require("express");
+const scrapeAttendance = require("./scrapeAttendance");
 
-async function scrapeAttendance(username, password) {
+const router = express.Router();
 
-    const driver = await new Builder().forBrowser("chrome").build();
+router.post("/attendance", async (req, res) => {
+  const { username, password } = req.body;
 
-    try {
+  try {
+    const data = await scrapeAttendance(username, password);
 
-        await driver.get("https://erp.cbit.org.in/");
+    res.json(data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Failed to fetch attendance" });
+  }
+});
 
-        const wait = driver.wait.bind(driver);
-
-        // username
-        const usernameField = await wait(
-            until.elementLocated(By.id("txtUserName")), 
-            10000
-        );
-        await usernameField.sendKeys(username);
-
-        await driver.findElement(By.id("btnNext")).click();
-
-        // password
-        const passwordField = await wait(
-            until.elementLocated(By.id("txtPassword")),
-            10000
-        );
-
-        await passwordField.sendKeys(password);
-
-        await driver.findElement(By.id("btnSubmit")).click();
-
-        // dashboard
-        const dashboard = await wait(
-            until.elementLocated(By.id("ctl00_cpStud_lnkStudentMain")),
-            10000
-        );
-
-        await dashboard.click();
-
-        const table = await wait(
-            until.elementLocated(By.id("ctl00_cpStud_grdSubject")),
-            10000
-        );
-
-        const rows = await table.findElements(By.tagName("tr"));
-
-        let attendance = [];
-
-        for (let row of rows) {
-            const cols = await row.findElements(By.tagName("td"));
-            let data = [];
-
-            for (let col of cols) {
-                data.push(await col.getText());
-            }
-
-            if (data.length > 0) attendance.push(data);
-        }
-
-        return attendance;
-
-    } finally {
-        await driver.quit();
-    }
-}
-
-module.exports = scrapeAttendance;
+module.exports = router;
