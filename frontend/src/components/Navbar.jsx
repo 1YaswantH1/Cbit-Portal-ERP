@@ -52,7 +52,7 @@ function Navbar() {
           </li>
 
           <li>
-            <Link to="/support">Support</Link>
+            <Link to="/placements">Placements</Link>
           </li>
 
           <li>

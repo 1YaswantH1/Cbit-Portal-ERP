@@ -1,0 +1,50 @@
+.placements-container {
+    width: 90%;
+    margin: auto;
+    margin-top: 40px;
+}
+
+.placements-heading {
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 30px;
+}
+
+.placements-loading {
+    text-align: center;
+    font-size: 18px;
+}
+
+.placements-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.placements-table th {
+    padding: 12px;
+    background: #800000;
+    color: white;
+}
+
+.placements-table td {
+    padding: 12px;
+    border: 1px solid #ccc;
+}
+
+.placements-table tr:nth-child(even) {
+    background: #f5f5f5;
+}
+
+[data-theme="dark"] .placements-table tr:nth-child(even) {
+    background: #1f1f1f;
+}
+
+.placements-link {
+    color: #0077ff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.placements-link:hover {
+    text-decoration: underline;
+}
