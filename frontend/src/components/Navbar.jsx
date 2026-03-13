@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import ThemeController from "./ThemeController";
 
@@ -17,20 +18,22 @@ function Navbar() {
 
   return (
     <div className="navbar bg-base-100 px-10 border-b">
-      {/* Logo */}
+      {/* Logo -> Home */}
       <div className="navbar-start">
-        <a className="text-2xl font-bold">ERP-CBIT</a>
+        <Link to="/" className="text-2xl font-bold">
+          ERP-CBIT
+        </Link>
       </div>
 
       {/* Menu */}
       <div className="navbar-center lg:flex">
         <ul className="menu menu-horizontal gap-4 font-medium">
-          {/* Attendance Analyzer (Hidden initially) */}
           <li>
-            <a>Attendance Analyzer</a>
+            <Link to="/attendance">Attendance Analyzer</Link>
           </li>
+
           <li>
-            <a>Holidays</a>
+            <Link to="/holidays">Holidays</Link>
           </li>
 
           {/* Clubs Dropdown */}
@@ -39,28 +42,27 @@ function Navbar() {
               <summary>Clubs</summary>
               <ul className="p-2 bg-base-100 rounded-box w-48">
                 <li>
-                  <a>Clubs</a>
+                  <Link to="/clubs">Clubs</Link>
                 </li>
                 <li>
-                  <a>Club Recruitment</a>
+                  <Link to="/recruitment">Club Recruitment</Link>
                 </li>
               </ul>
             </details>
           </li>
 
-          {/* Support Dropdown */}
           <li>
-            <a>Support</a>
+            <Link to="/support">Support</Link>
           </li>
+
           <li>
-            <a>About</a>
+            <Link to="/about">About</Link>
           </li>
         </ul>
       </div>
 
       {/* Right Section */}
       <div className="navbar-end gap-3">
-        {/* Theme Toggle */}
         <ThemeController theme={theme} toggleTheme={toggleTheme} />
       </div>
     </div>
