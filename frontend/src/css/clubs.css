@@ -79,7 +79,7 @@
     display: inline-block;
     margin-top: 14px;
     padding: 9px 18px;
-    background: linear-gradient(135deg, #003049, #1d3557);
+    background: linear-gradient(135deg, #000814, #1d3557);
     color: white;
     text-decoration: none;
     border-radius: 10px;
@@ -123,7 +123,7 @@
 }
 
 .filter-btn.active {
-    background: linear-gradient(135deg, #003049, #1d3557);
+    background: linear-gradient(135deg, #000814, #1d3557);
     color: white;
     box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
     transform: scale(1.05);
@@ -152,7 +152,7 @@
     padding: 10px 20px;
     border: none;
     border-radius: 8px;
-    background: #003049;
+    background: #000814;
     color: white;
     font-size: 15px;
     cursor: pointer;

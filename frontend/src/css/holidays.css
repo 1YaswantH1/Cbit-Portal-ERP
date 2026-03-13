@@ -35,7 +35,7 @@
 }
 
 .holiday-buttons button.active {
-    background: #003049;
+    background: #000814;
     color: white;
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }
@@ -50,7 +50,7 @@
 }
 
 .holiday-table th {
-    background: #003049;
+    background: #000814;
     color: white;
     padding: 14px;
     text-align: left;
