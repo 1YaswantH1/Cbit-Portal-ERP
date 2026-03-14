@@ -46,14 +46,20 @@ function Attendance() {
       <h2 className="attendance-title">CBIT Attendance</h2>
 
       <form className="attendance-form" onSubmit={handleSubmit}>
-        <input
-          className="attendance-input"
-          type="text"
-          placeholder="ERP Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
+        <div className="attendance-search-row">
+          <input
+            className="attendance-input"
+            type="text"
+            placeholder="Enter ERP Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+
+          <button className="attendance-button" type="submit">
+            Search
+          </button>
+        </div>
 
         <label className="attendance-checkbox">
           <input
@@ -74,13 +80,13 @@ function Attendance() {
             required
           />
         )}
-
-        <button className="attendance-button" type="submit">
-          Get Attendance
-        </button>
       </form>
 
-      {loading && <p>Loading...</p>}
+      {loading && (
+        <p className="attendance-loading animate__animated animate__pulse animate__infinite">
+          Fetching Attendance...
+        </p>
+      )}
 
       {studentName && <p className="attendance-student">{studentName}</p>}
 

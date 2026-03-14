@@ -1,4 +1,5 @@
 import "./App.css";
+import "animate.css";
 import Navbar from "./components/Navbar";
 import ClubsPage from "./pages/ClubsPages";
 import Holidays from "./pages/Holidays";
