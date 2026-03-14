@@ -1,0 +1,7 @@
+li a {
+    transition: all 0.2s ease;
+}
+
+li a:hover {
+    color: #9ca3af;
+}
