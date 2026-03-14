@@ -109,6 +109,12 @@ const BAR_COLORS = {
 };
 
 function buildChartData(processed) {
+  // Check if all subjects share the same target — if so, label it clearly,
+  // otherwise use a generic "Target" label since values differ per subject.
+  const targets = processed.map((s) => s.target);
+  const allSameTarget = targets.every((t) => t === targets[0]);
+  const targetLabel = allSameTarget ? `Target ${targets[0]}%` : "Target %";
+
   return {
     labels: processed.map((s) =>
       s.subject.length > 18 ? s.subject.slice(0, 18) + "…" : s.subject,
@@ -124,8 +130,9 @@ function buildChartData(processed) {
         borderSkipped: false,
       },
       {
-        label: "Target 75%",
-        data: processed.map(() => 75),
+        label: targetLabel,
+        // Each bar uses that subject's own target from the dropdown
+        data: processed.map((s) => s.target),
         backgroundColor: "rgba(13,13,13,0.07)",
         borderColor: "rgba(13,13,13,0.25)",
         borderWidth: 1,
