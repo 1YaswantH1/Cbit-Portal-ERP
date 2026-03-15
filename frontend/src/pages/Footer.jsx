@@ -93,7 +93,9 @@ function Footer() {
             <br />
             Built for CBIT students.
           </p>
-          <p className="footer-copy">© {new Date().getFullYear()} ERP-CBIT</p>
+          <p className="footer-copy">
+            © {new Date().getFullYear()} Cbit Portal{" "}
+          </p>
         </div>
 
         {/* Contact */}
