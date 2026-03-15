@@ -6,9 +6,8 @@ const Syllabus = () => {
   const [type, setType] = useState("ug");
   const [data, setData] = useState([]);
   const [branches, setBranches] = useState([]);
-  const [regs, setRegs] = useState([]);
-  const [branchFilter, setBranchFilter] = useState("");
   const [regFilter, setRegFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -17,7 +16,6 @@ const Syllabus = () => {
       const res = await axios.get(`${API_URL}/api/syllabus/${type}`);
       const syllabusData = res.data || [];
 
-      // Group flat rows by branch
       const grouped = {};
       syllabusData.forEach((row) => {
         if (!grouped[row.branch]) {
@@ -34,28 +32,32 @@ const Syllabus = () => {
 
       const branchList = groupedArray.map((b) => b.branch).filter(Boolean);
       setBranches([...new Set(branchList)]);
-
-      const regList = groupedArray.flatMap((b) =>
-        b.items.map((i) => i.regulation),
-      );
-      setRegs([...new Set(regList)]);
     } catch (err) {
       console.error("Syllabus API error:", err);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
-  const filtered = data
-    .filter((b) => !branchFilter || b.branch === branchFilter)
+  const filteredByBranch = branchFilter
+    ? data.filter((b) => b.branch === branchFilter)
+    : data;
+
+  const regs = [
+    ...new Set(
+      filteredByBranch.flatMap((b) => b.items.map((i) => i.regulation)),
+    ),
+  ];
+
+  const filtered = filteredByBranch
     .map((b) => ({
       ...b,
       items: b.items.filter((i) => !regFilter || i.regulation === regFilter),
-    }));
+    }))
+    .filter((b) => b.items.length > 0);
 
   return (
     <div className="syllabus-container">
@@ -76,7 +78,10 @@ const Syllabus = () => {
 
         <select
           value={branchFilter}
-          onChange={(e) => setBranchFilter(e.target.value)}
+          onChange={(e) => {
+            setBranchFilter(e.target.value);
+            setRegFilter("");
+          }}
         >
           <option value="">All Branches</option>
           {branches.map((b, i) => (
