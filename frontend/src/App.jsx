@@ -9,7 +9,8 @@ import Attendance from "./pages/Attendance";
 import Syllabus from "./pages/Syllabus";
 import Footer from "./pages/Footer";
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
   return (
@@ -17,12 +18,14 @@ function App() {
       <Navbar />
 
       <Routes>
+        <Route path="/" element={<Navigate to="/attendance" />} />
         <Route path="/holidays" element={<Holidays />} />
         <Route path="/clubs" element={<ClubsPage />} />
         <Route path="/placements" element={<Placements />} />
         <Route path="/papers" element={<Papers />} />
-        <Route path="/attendance" element={<Attendance />} />
         <Route path="/syllabus" element={<Syllabus />} />
+        <Route path="/attendance" element={<Attendance />} />
+        <Route path="*" element={<Navigate to="/attendance" />} />
       </Routes>
       <Footer />
     </BrowserRouter>
