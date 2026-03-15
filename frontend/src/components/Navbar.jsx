@@ -21,11 +21,11 @@ const theme = createTheme({
 
 const pages = [
   { name: "Attendance", path: "/attendance" },
-  { name: "PYQ Papers", path: "/papers" },
   { name: "Placements", path: "/placements" },
   { name: "Clubs", path: "/clubs" },
-  { name: "Syllabus", path: "/syllabus" },
   { name: "Holidays", path: "/holidays" },
+  { name: "Syllabus", path: "/syllabus" },
+  { name: "PYQ Papers", path: "/papers" },
 ];
 
 function Navbar() {
