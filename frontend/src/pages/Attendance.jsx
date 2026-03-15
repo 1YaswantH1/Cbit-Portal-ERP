@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../css/attendance.css";
+import "../css/Attendance.css";
 import {
   Chart as ChartJS,
   CategoryScale,
