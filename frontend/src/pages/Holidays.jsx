@@ -20,9 +20,25 @@ function Holidays() {
       });
   }, []);
 
-  const upcoming = holidays.filter((h) => new Date(h.date) >= today);
-  const completed = holidays.filter((h) => new Date(h.date) < today);
-  const weekend = holidays.filter((h) => h.type === "weekend");
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const upcoming = holidays
+    .filter((h) => new Date(h.date) >= today)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const completed = holidays
+    .filter((h) => new Date(h.date) < today)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const weekend = holidays
+    .filter((h) => h.type === "weekend")
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   let displayData = [];
 
@@ -72,7 +88,7 @@ function Holidays() {
             <tr key={index}>
               <td>{index + 1}</td>
               <td>{h.name}</td>
-              <td>{h.date}</td>
+              <td>{formatDate(h.date)}</td>
               <td>{h.day}</td>
             </tr>
           ))}
