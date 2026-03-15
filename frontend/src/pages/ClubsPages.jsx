@@ -45,6 +45,24 @@ function ClubsPage() {
 
   return (
     <div className="clubs-page">
+      {/* <div className="clubs-header">
+        <h1 className="clubs-main-title">If You're Not in a Club</h1>
+        <h6 className="clubs-main-title">Join a Club</h6>
+        <p className="clubs-sub-title">Find the One That Fits You.</p>
+      </div> */}
+
+      <div className="clubs-hero">
+        <h1 className="meme-line">
+          If You're Not In A <span>CLUB</span>,
+        </h1>
+
+        <h1 className="meme-line">
+          Join A <span>CLUB</span>
+        </h1>
+
+        <p className="clubs-subtitle">Find the Club That Fits You.</p>
+      </div>
+
       {/* FILTER BUTTON */}
       <div className="filter-header">
         <button
