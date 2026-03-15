@@ -224,25 +224,44 @@ export default function Attendance() {
   const [loading, setLoading] = useState(false);
   const [customTargets, setCustomTargets] = useState({});
   const [showPlan, setShowPlan] = useState(false);
-
+  const [errorMsg, setErrorMsg] = useState("");
   const API_URL = import.meta.env.VITE_API_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const finalPassword = samePass ? username : password;
+
     setLoading(true);
+    setErrorMsg("");
+
     try {
       const res = await fetch(`${API_URL}/attendance`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password: finalPassword }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password: finalPassword,
+        }),
       });
+
       const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error);
+        setLoading(false);
+        return;
+      }
+
       setStudentName(data.studentName);
       setAttendance(data.attendance);
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
-      console.error(err);
+      setErrorMsg("Something went wrong with ERP. Please try again later.");
     }
+
     setLoading(false);
   };
 
@@ -319,6 +338,7 @@ export default function Attendance() {
               </div>
             )}
           </form>
+          {errorMsg && <div className="att-error">{errorMsg}</div>}
         </div>
 
         {loading && <p className="att-loading">Fetching attendance data…</p>}
