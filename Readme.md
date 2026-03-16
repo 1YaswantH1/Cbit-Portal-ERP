@@ -57,6 +57,8 @@ node server.js
 ```
 
 ## For Project Screenshots 
-Go to this folders 
+Go to this folders
+```bash
 | Project-Screenshots-Mobile
 | Project-Screenshots-Web
+```
