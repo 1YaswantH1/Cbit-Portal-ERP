@@ -1,186 +1,79 @@
-const { Builder, By, until } = require("selenium-webdriver");
-const chrome = require("selenium-webdriver/chrome");
+const chromium = require("@sparticuz/chromium");
+const { chromium: playwright } = require("playwright");
 
-/* ───────────────── HELPERS ───────────────── */
+async function scrapeAttendance(username, password) {
+  let browser;
 
-async function safeText(el) {
-  try {
-    return await el.getText();
-  } catch {
-    return "";
+  /* Detect environment */
+  if (process.env.VERCEL) {
+    /* Vercel serverless */
+    browser = await playwright.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+  } else {
+    /* Local development */
+    browser = await playwright.launch({
+      headless: true,
+    });
   }
-}
 
-async function waitVisible(driver, locator, label, timeout = 20000) {
-  const el = await driver.wait(
-    until.elementLocated(locator),
-    timeout,
-    `Timeout waiting for ${label}`,
-  );
-
-  await driver.wait(
-    until.elementIsVisible(el),
-    timeout,
-    `${label} located but not visible`,
-  );
-
-  return el;
-}
-
-async function robustClick(driver, el) {
-  try {
-    await el.click();
-  } catch {
-    await driver.executeScript("arguments[0].click()", el);
-  }
-}
-
-/* ───────────── LOGIN ERROR CHECK ───────────── */
-
-async function assertNoLoginError(driver) {
-  const warning = await driver.findElements(By.id("lblWarning"));
-
-  if (warning.length > 0) {
-    const text = (await safeText(warning[0])).trim();
-
-    if (text.includes("User Name is Incorrect")) {
-      const err = new Error("USERNAME_INCORRECT");
-      err.code = "USERNAME_INCORRECT";
-      throw err;
-    }
-
-    if (text.includes("Password is Incorrect")) {
-      const err = new Error("PASSWORD_INCORRECT");
-      err.code = "PASSWORD_INCORRECT";
-      throw err;
-    }
-  }
-}
-
-/* ───────────────── MAIN ───────────────── */
-
-async function scrapeAttendance(username, password, retries = 2) {
-  let driver;
+  const page = await browser.newPage();
 
   try {
-    const options = new chrome.Options();
-
-    options.addArguments(
-      "--headless=new",
-      "--disable-gpu",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--window-size=1920,1080",
-      "--disable-blink-features=AutomationControlled",
-    );
-
-    driver = await new Builder()
-      .forBrowser("chrome")
-      .setChromeOptions(options)
-      .build();
-
-    await driver.manage().setTimeouts({
-      pageLoad: 30000,
-      script: 20000,
+    await page.goto("https://erp.cbit.org.in/", {
+      waitUntil: "domcontentloaded",
     });
 
-    /* STEP 1 - Open ERP */
-    await driver.get("https://erp.cbit.org.in/");
+    await page.fill("#txtUserName", username);
+    await page.click("#btnNext");
 
-    /* STEP 2 - Enter username */
-    const usernameField = await waitVisible(
-      driver,
-      By.id("txtUserName"),
-      "username field",
-    );
+    await page.waitForTimeout(1500);
 
-    await usernameField.clear();
-    await usernameField.sendKeys(username);
+    const warning = await page.locator("#lblWarning").textContent().catch(() => "");
 
-    /* STEP 3 - Click Next */
-    const nextBtn = await waitVisible(driver, By.id("btnNext"), "next button");
-    await robustClick(driver, nextBtn);
-
-    /* Check username error */
-    await driver.sleep(1200);
-    await assertNoLoginError(driver);
-
-    /* STEP 4 - Password */
-    const passwordField = await waitVisible(
-      driver,
-      By.id("txtPassword"),
-      "password field",
-      25000,
-    );
-
-    await passwordField.clear();
-    await passwordField.sendKeys(password);
-
-    /* STEP 5 - Submit */
-    const submitBtn = await waitVisible(
-      driver,
-      By.id("btnSubmit"),
-      "submit button",
-    );
-
-    await robustClick(driver, submitBtn);
-
-    /* Check password error */
-    await driver.sleep(1500);
-    await assertNoLoginError(driver);
-
-    /* STEP 6 - Dashboard */
-    const dashboard = await waitVisible(
-      driver,
-      By.id("ctl00_cpStud_lnkStudentMain"),
-      "dashboard link",
-      30000,
-    );
-
-    await robustClick(driver, dashboard);
-
-    /* STEP 7 - Student name */
-    const nameEl = await waitVisible(
-      driver,
-      By.id("ctl00_cpHeader_ucStud_lblStudentName"),
-      "student name",
-    );
-
-    const studentName = await safeText(nameEl);
-
-    /* STEP 8 - Attendance table */
-    const table = await waitVisible(
-      driver,
-      By.id("ctl00_cpStud_grdSubject"),
-      "attendance table",
-    );
-
-    const attendance = await driver.executeScript(
-      `
-      const rows = arguments[0].querySelectorAll("tr");
-      const result = [];
-      for(const r of rows){
-        const cols = r.querySelectorAll("td");
-        if(cols.length === 0) continue;
-        result.push(Array.from(cols).map(c => c.innerText.trim()));
-      }
-      return result;
-    `,
-      table,
-    );
-
-    return { studentName, attendance };
-  } catch (error) {
-    console.log("Scraping error:", error.message);
-
-    if (retries > 0 && !error.code) {
-      await new Promise((r) => setTimeout(r, 2000));
-      return scrapeAttendance(username, password, retries - 1);
+    if (warning?.includes("User Name is Incorrect")) {
+      throw new Error("USERNAME_INCORRECT");
     }
 
-    throw error;
+    await page.fill("#txtPassword", password);
+    await page.click("#btnSubmit");
+
+    await page.waitForTimeout(1500);
+
+    const passWarning = await page.locator("#lblWarning").textContent().catch(() => "");
+
+    if (passWarning?.includes("Password is Incorrect")) {
+      throw new Error("PASSWORD_INCORRECT");
+    }
+
+    await page.waitForSelector("#ctl00_cpStud_lnkStudentMain");
+    await page.click("#ctl00_cpStud_lnkStudentMain");
+
+    const studentName = await page.textContent(
+      "#ctl00_cpHeader_ucStud_lblStudentName"
+    );
+
+    await page.waitForSelector("#ctl00_cpStud_grdSubject");
+
+    const attendance = await page.evaluate(() => {
+      const rows = document.querySelectorAll("#ctl00_cpStud_grdSubject tr");
+      const data = [];
+
+      rows.forEach((r) => {
+        const cols = r.querySelectorAll("td");
+        if (cols.length === 0) return;
+
+        data.push(Array.from(cols).map((c) => c.innerText.trim()));
+      });
+
+      return data;
+    });
+
+    return { studentName, attendance };
   } finally {
-    if (driver) await driver.quit();
+    await browser.close();
   }
 }
 
