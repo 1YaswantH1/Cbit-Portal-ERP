@@ -217,8 +217,8 @@ function RiskBadge({ percent }) {
 ───────────────────────────────────────── */
 export default function Attendance() {
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [samePass, setSamePass] = useState(true);
+  // const [password, setPassword] = useState("");
+  // const [samePass, setSamePass] = useState(true);
   const [attendance, setAttendance] = useState([]);
   const [studentName, setStudentName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -227,43 +227,43 @@ export default function Attendance() {
   const [errorMsg, setErrorMsg] = useState("");
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const finalPassword = samePass ? username : password;
+  const value = username.trim() + "P";
 
-    setLoading(true);
-    setErrorMsg("");
+  setLoading(true);
+  setErrorMsg("");
 
-    try {
-      const res = await fetch(`${API_URL}/attendance`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          password: finalPassword,
-        }),
-      });
+  try {
+    const res = await fetch(`${API_URL}/attendance`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: value,
+        password: value,
+      }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        setErrorMsg(data.error);
-        setLoading(false);
-        return;
-      }
-
-      setStudentName(data.studentName);
-      setAttendance(data.attendance);
-      // eslint-disable-next-line no-unused-vars
-    } catch (err) {
-      setErrorMsg("Something went wrong with ERP. Please try again later.");
+    if (!res.ok) {
+      setErrorMsg(data.error);
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
-  };
+    setStudentName(data.studentName);
+    setAttendance(data.attendance);
+  // eslint-disable-next-line no-unused-vars
+  } catch (err) {
+    setErrorMsg("Something went wrong with ERP. Please try again later.");
+  }
+
+  setLoading(false);
+};
 
   const subjects = attendance.slice(0, -1);
 
@@ -317,26 +317,6 @@ export default function Attendance() {
               </button>
             </div>
 
-            <label className="att-check">
-              <input
-                type="checkbox"
-                checked={samePass}
-                onChange={() => setSamePass(!samePass)}
-              />
-              Username = Password
-            </label>
-
-            {!samePass && (
-              <div className="att-pass-wrap">
-                <input
-                  className="att-input"
-                  type="password"
-                  placeholder="ERP Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            )}
           </form>
           {errorMsg && <div className="att-error">{errorMsg}</div>}
         </div>
