@@ -2,64 +2,70 @@
 const chromium = require("@sparticuz/chromium");
 const { chromium: playwright } = require("playwright");
 
-let persistentBrowser = null;   // Browser reuse
+let persistentBrowser = null;
 
 async function getBrowser() {
-  if (persistentBrowser && !persistentBrowser.isClosed()) {
-    return persistentBrowser;
+  // Close invalid or closed browser
+  if (persistentBrowser) {
+    try {
+      if (persistentBrowser.isClosed()) {
+        persistentBrowser = null;
+      }
+    } catch (e) {
+      // If .isClosed() itself fails (rare but happens), force cleanup
+      persistentBrowser = null;
+    }
   }
 
-  const isVercel = !!process.env.VERCEL;
+  if (!persistentBrowser) {
+    const isVercel = !!process.env.VERCEL;
 
-  persistentBrowser = await playwright.launch({
-    args: [
-      ...chromium.args,
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-accelerated-2d-canvas",
-      "--disable-webgl",
-      "--single-process",
-      "--disable-extensions",
-      "--disable-plugins",
-    ],
-    executablePath: isVercel ? await chromium.executablePath() : undefined,
-    headless: true,
-  });
+    console.log(`[attendance] Launching new browser (${isVercel ? 'Vercel' : 'Local'})`);
+
+    persistentBrowser = await playwright.launch({
+      args: [
+        ...chromium.args,
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-accelerated-2d-canvas",
+        "--disable-webgl",
+        "--single-process",
+        "--disable-extensions",
+      ],
+      executablePath: isVercel ? await chromium.executablePath() : undefined,
+      headless: true,
+    });
+  }
 
   return persistentBrowser;
 }
 
 async function scrapeAttendance(username, password) {
+  let page = null;
   const browser = await getBrowser();
-  const page = await browser.newPage();
-
-  // Optimize page load
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await page.setDefaultNavigationTimeout(15000);
-  await page.setDefaultTimeout(10000);
 
   try {
-    // 1. Go to login
+    page = await browser.newPage();
+    await page.setDefaultNavigationTimeout(15000);
+    await page.setDefaultTimeout(10000);
+
     await page.goto("https://erp.cbit.org.in/", {
       waitUntil: "domcontentloaded",
       timeout: 12000,
     });
 
-    // Fill username + next
     await page.fill("#txtUserName", username);
     await page.click("#btnNext");
 
-    // Smart wait
-    await page.waitForSelector("#txtPassword, #lblWarning", { timeout: 7000 });
+    await page.waitForSelector("#txtPassword, #lblWarning", { timeout: 8000 });
 
     const usernameWarning = await page.locator("#lblWarning").textContent().catch(() => "");
     if (usernameWarning.includes("User Name is Incorrect")) {
       throw Object.assign(new Error("USERNAME_INCORRECT"), { code: "USERNAME_INCORRECT" });
     }
 
-    // Fill password + submit
     await page.fill("#txtPassword", password);
     await page.click("#btnSubmit");
 
@@ -70,12 +76,9 @@ async function scrapeAttendance(username, password) {
       throw Object.assign(new Error("PASSWORD_INCORRECT"), { code: "PASSWORD_INCORRECT" });
     }
 
-    // Navigate to attendance
     await page.click("#ctl00_cpStud_lnkStudentMain");
-
     await page.waitForSelector("#ctl00_cpStud_grdSubject", { timeout: 12000 });
 
-    // Extract data in one go
     const [studentName, attendance] = await Promise.all([
       page.textContent("#ctl00_cpHeader_ucStud_lblStudentName").catch(() => "Student"),
       page.evaluate(() => {
@@ -97,17 +100,22 @@ async function scrapeAttendance(username, password) {
     };
 
   } catch (err) {
+    console.error("[attendance] Scrape error:", err.message);
     if (!err.code) err.code = "SCRAPE_FAILED";
     throw err;
   } finally {
-    // Don't close page immediately — keep browser alive
-    await page.close().catch(() => { });
+    if (page) {
+      await page.close().catch(() => { });
+    }
   }
 }
 
-// Graceful shutdown
+// Cleanup on process exit
 process.on("SIGTERM", async () => {
-  if (persistentBrowser) await persistentBrowser.close();
+  if (persistentBrowser) {
+    await persistentBrowser.close().catch(() => { });
+    persistentBrowser = null;
+  }
 });
 
 module.exports = scrapeAttendance;
