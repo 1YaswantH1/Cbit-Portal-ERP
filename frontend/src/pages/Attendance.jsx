@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import "../css/Attendance.css";
 import {
   Chart as ChartJS,
@@ -109,8 +109,6 @@ const BAR_COLORS = {
 };
 
 function buildChartData(processed) {
-  // Check if all subjects share the same target — if so, label it clearly,
-  // otherwise use a generic "Target" label since values differ per subject.
   const targets = processed.map((s) => s.target);
   const allSameTarget = targets.every((t) => t === targets[0]);
   const targetLabel = allSameTarget ? `Target ${targets[0]}%` : "Target %";
@@ -131,7 +129,6 @@ function buildChartData(processed) {
       },
       {
         label: targetLabel,
-        // Each bar uses that subject's own target from the dropdown
         data: processed.map((s) => s.target),
         backgroundColor: "rgba(13,13,13,0.07)",
         borderColor: "rgba(13,13,13,0.25)",
@@ -185,6 +182,69 @@ const CHART_OPTIONS = {
 };
 
 /* ─────────────────────────────────────────
+   SKELETON LOADER
+───────────────────────────────────────── */
+function SkeletonLoader({ elapsed }) {
+  const messages = [
+    "Connecting to ERP…",
+    "Logging in…",
+    "Fetching attendance data…",
+    "Almost there…",
+  ];
+  // Cycle through messages every ~4 seconds
+  const msgIndex = Math.min(Math.floor(elapsed / 4), messages.length - 1);
+
+  return (
+    <div className="skeleton-wrap">
+      <div className="skeleton-status">
+        <span className="skeleton-spinner" />
+        <span className="skeleton-msg">{messages[msgIndex]}</span>
+        <span className="skeleton-elapsed">{elapsed}s</span>
+      </div>
+
+      {/* Summary cards skeleton */}
+      <div className="att-summary">
+        {[1, 2, 3].map((i) => (
+          <div className="sum-card" key={i}>
+            <span className="skel skel-line short" />
+            <span className="skel skel-line tall" />
+            <span className="skel skel-line short" />
+          </div>
+        ))}
+      </div>
+
+      {/* Table skeleton */}
+      <div className="att-table-wrap">
+        <div className="att-table-head">
+          <span className="skel skel-line medium" />
+        </div>
+        <table className="att-table">
+          <thead>
+            <tr>
+              {["Subject", "Attendance", "Status", "Target", "To Attend", "Can Miss"].map(
+                (h) => <th key={h}>{h}</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <tr key={i}>
+                <td><span className="skel skel-line medium" /></td>
+                <td><span className="skel skel-line full" /></td>
+                <td><span className="skel skel-badge" /></td>
+                <td><span className="skel skel-badge" /></td>
+                <td><span className="skel skel-pill" /></td>
+                <td><span className="skel skel-pill" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
    SUB-COMPONENTS
 ───────────────────────────────────────── */
 function PctBar({ percent }) {
@@ -217,52 +277,65 @@ function RiskBadge({ percent }) {
 ───────────────────────────────────────── */
 export default function Attendance() {
   const [username, setUsername] = useState("");
-  // const [password, setPassword] = useState("");
-  // const [samePass, setSamePass] = useState(true);
   const [attendance, setAttendance] = useState([]);
   const [studentName, setStudentName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [customTargets, setCustomTargets] = useState({});
   const [showPlan, setShowPlan] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const timerRef = useRef(null);
   const API_URL = import.meta.env.VITE_API_URL;
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  /* Elapsed-second timer — starts/stops with loading state */
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0);
+      timerRef.current = setInterval(
+        () => setElapsed((s) => s + 1),
+        1000
+      );
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [loading]);
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
   const value = username.trim() + "P";
 
   setLoading(true);
   setErrorMsg("");
+    setAttendance([]);
+    setStudentName("");
+
+    const startTime = Date.now();
 
   try {
     const res = await fetch(`${API_URL}/attendance`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: value,
-        password: value,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: value, password: value }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
       setErrorMsg(data.error);
-      setLoading(false);
       return;
     }
 
     setStudentName(data.studentName);
     setAttendance(data.attendance);
-  // eslint-disable-next-line no-unused-vars
-  } catch (err) {
-    setErrorMsg("Something went wrong with ERP. Please try again later.");
-  }
 
-  setLoading(false);
+    // Show how long it took
+    console.log(`Attendance fetched in ${(Date.now() - startTime) / 1000}s`);
+  } catch (err) {
+    setErrorMsg("Something went wrong with ERP. Please try again.");
+  } finally {
+    setLoading(false);
+  }
 };
 
   const subjects = attendance.slice(0, -1);
@@ -311,166 +384,165 @@ const handleSubmit = async (e) => {
                 placeholder="ERP Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
               />
-              <button className="att-btn" type="submit">
-                Fetch
+              <button className="att-btn" type="submit" disabled={loading}>
+                {loading ? "…" : "Fetch"}
               </button>
             </div>
-
           </form>
           {errorMsg && <div className="att-error">{errorMsg}</div>}
         </div>
 
-        {loading && <p className="att-loading">Fetching attendance data…</p>}
-        {studentName && <p className="att-name">{studentName}</p>}
+        {/* SKELETON LOADER */}
+        {loading && <SkeletonLoader elapsed={elapsed} estimatedTime={18} />}
 
-        {/* SUMMARY */}
-        {processed.length > 0 && (
-          <div className="att-summary">
-            <div className="sum-card">
-              <span className="sum-label">Overall Attendance</span>
-              <span
-                className={`sum-value ${percentColorClass(Number(overallPercent))}`}
-              >
-                {overallPercent}%
-              </span>
-              <span className="sum-sub">
-                {totalAtt} of {totalHeld} classes
-              </span>
-            </div>
+        {/* RESULTS */}
+        {!loading && (
+          <>
+            {studentName && <p className="att-name">{studentName}</p>}
 
-            <div
-              className="sum-card clickable"
-              onClick={() => setShowPlan(!showPlan)}
-              title="Click to see optimal plan"
-            >
-              <span className="sum-label">Classes Needed (75%)</span>
-              <span
-                className={`sum-value ${overallNeed > 0 ? "color-red" : "color-green"}`}
-              >
-                {overallNeed}
-              </span>
-              <span className="sum-sub">
-                {showPlan ? "▲ Hide plan" : "▼ View optimal plan"}
-              </span>
-            </div>
+            {/* SUMMARY */}
+            {processed.length > 0 && (
+              <div className="att-summary">
+                <div className="sum-card">
+                  <span className="sum-label">Overall Attendance</span>
+                  <span className={`sum-value ${percentColorClass(Number(overallPercent))}`}>
+                    {overallPercent}%
+                  </span>
+                  <span className="sum-sub">
+                    {totalAtt} of {totalHeld} classes
+                  </span>
+                </div>
 
-            <div className="sum-card">
-              <span className="sum-label">Safe Bunks (75%)</span>
-              <span
-                className={`sum-value ${overallBunks > 0 ? "color-green" : "color-muted"}`}
-              >
-                {overallBunks}
-              </span>
-              <span className="sum-sub">across all subjects</span>
-            </div>
-          </div>
-        )}
+                <div
+                  className="sum-card clickable"
+                  onClick={() => setShowPlan(!showPlan)}
+                  title="Click to see optimal plan"
+                >
+                  <span className="sum-label">Classes Needed (75%)</span>
+                  <span className={`sum-value ${overallNeed > 0 ? "color-red" : "color-green"}`}>
+                    {overallNeed}
+                  </span>
+                  <span className="sum-sub">
+                    {showPlan ? "▲ Hide plan" : "▼ View optimal plan"}
+                  </span>
+                </div>
 
-        {/* OPTIMAL PLAN */}
-        {showPlan && processed.length > 0 && (
-          <div className="plan-card">
-            <h3>
-              {planEntries.length === 0
-                ? "✓ Already at 75% overall"
-                : `Optimal Plan — attend ${planTotal} class${planTotal !== 1 ? "es" : ""} to reach 75% overall`}
-            </h3>
-
-            {planEntries.length === 0 ? (
-              <p className="plan-empty">No action needed. Keep it up!</p>
-            ) : (
-              <div className="plan-grid">
-                {[...planEntries]
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([sub, v]) => (
-                    <div className="plan-item" key={sub}>
-                      <div className="plan-dot" />
-                      <div>
-                        <div>
-                          <b>{v}</b> class{v !== 1 ? "es" : ""}
-                        </div>
-                        <div className="plan-item-sub">{sub}</div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="sum-card">
+                  <span className="sum-label">Safe Bunks (75%)</span>
+                  <span className={`sum-value ${overallBunks > 0 ? "color-green" : "color-muted"}`}>
+                    {overallBunks}
+                  </span>
+                  <span className="sum-sub">across all subjects</span>
+                </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* CHART */}
-        {processed.length > 0 && (
-          <div className="att-chart-wrap">
-            <p className="section-title">Subject Breakdown</p>
-            <Bar data={chartData} options={CHART_OPTIONS} />
-          </div>
-        )}
+            {/* OPTIMAL PLAN */}
+            {showPlan && processed.length > 0 && (
+              <div className="plan-card">
+                <h3>
+                  {planEntries.length === 0
+                    ? "✓ Already at 75% overall"
+                    : `Optimal Plan — attend ${planTotal} class${planTotal !== 1 ? "es" : ""} to reach 75% overall`}
+                </h3>
 
-        {/* TABLE */}
-        {processed.length > 0 && (
-          <div className="att-table-wrap">
-            <div className="att-table-head">
-              <p className="section-title">Attendance Planner</p>
-            </div>
+                {planEntries.length === 0 ? (
+                  <p className="plan-empty">No action needed. Keep it up!</p>
+                ) : (
+                  <div className="plan-grid">
+                    {[...planEntries]
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([sub, v]) => (
+                        <div className="plan-item" key={sub}>
+                          <div className="plan-dot" />
+                          <div>
+                            <div>
+                              <b>{v}</b> class{v !== 1 ? "es" : ""}
+                            </div>
+                            <div className="plan-item-sub">{sub}</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <table className="att-table">
-              <thead>
-                <tr>
-                  <th>Subject</th>
-                  <th>Attendance</th>
-                  <th>Status</th>
-                  <th>Target</th>
-                  <th>To Attend</th>
-                  <th>Can Miss</th>
-                </tr>
-              </thead>
-              <tbody>
-                {processed.map((row, i) => (
-                  <tr key={i}>
-                    <td className="subj-name">{row.subject}</td>
-                    <td>
-                      <PctBar percent={row.percent} />
-                    </td>
-                    <td>
-                      <RiskBadge percent={row.percent} />
-                    </td>
-                    <td>
-                      <select
-                        className="target-select"
-                        value={row.target}
-                        onChange={(e) =>
-                          setCustomTargets({
-                            ...customTargets,
-                            [i]: Number(e.target.value),
-                          })
-                        }
-                      >
-                        {[85, 80, 75, 70, 65].map((t) => (
-                          <option key={t} value={t}>
-                            {t}%
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <span
-                        className={`num-pill ${row.need > 0 ? "need" : "zero"}`}
-                      >
-                        {row.need > 0 ? `+${row.need}` : "—"}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`num-pill ${row.bunks > 0 ? "bunk" : "zero"}`}
-                      >
-                        {row.bunks > 0 ? row.bunks : "—"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {/* CHART */}
+            {processed.length > 0 && (
+              <div className="att-chart-wrap">
+                <p className="section-title">Subject Breakdown</p>
+                <Bar data={chartData} options={CHART_OPTIONS} />
+              </div>
+            )}
+
+            {/* TABLE — wrapped for mobile horizontal scroll */}
+            {processed.length > 0 && (
+              <div className="att-table-wrap">
+                <div className="att-table-head">
+                  <p className="section-title">Attendance Planner</p>
+                </div>
+
+                <div className="att-table-scroll">
+                  <table className="att-table">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Attendance</th>
+                        <th>Status</th>
+                        <th>Target</th>
+                        <th>To Attend</th>
+                        <th>Can Miss</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {processed.map((row, i) => (
+                        <tr key={i}>
+                          <td className="subj-name">{row.subject}</td>
+                          <td>
+                            <PctBar percent={row.percent} />
+                          </td>
+                          <td>
+                            <RiskBadge percent={row.percent} />
+                          </td>
+                          <td>
+                            <select
+                              className="target-select"
+                              value={row.target}
+                              onChange={(e) =>
+                                setCustomTargets({
+                                  ...customTargets,
+                                  [i]: Number(e.target.value),
+                                })
+                              }
+                            >
+                              {[85, 80, 75, 70, 65].map((t) => (
+                                <option key={t} value={t}>
+                                  {t}%
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <span className={`num-pill ${row.need > 0 ? "need" : "zero"}`}>
+                              {row.need > 0 ? `+${row.need}` : "—"}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`num-pill ${row.bunks > 0 ? "bunk" : "zero"}`}>
+                              {row.bunks > 0 ? row.bunks : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,80 +1,113 @@
+// scrapeAttendance.js
 const chromium = require("@sparticuz/chromium");
 const { chromium: playwright } = require("playwright");
 
-async function scrapeAttendance(username, password) {
-  let browser;
+let persistentBrowser = null;   // Browser reuse
 
-  /* Detect environment */
-  if (process.env.VERCEL) {
-    /* Vercel serverless */
-    browser = await playwright.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
-  } else {
-    /* Local development */
-    browser = await playwright.launch({
-      headless: true,
-    });
+async function getBrowser() {
+  if (persistentBrowser && !persistentBrowser.isClosed()) {
+    return persistentBrowser;
   }
 
+  const isVercel = !!process.env.VERCEL;
+
+  persistentBrowser = await playwright.launch({
+    args: [
+      ...chromium.args,
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-accelerated-2d-canvas",
+      "--disable-webgl",
+      "--single-process",
+      "--disable-extensions",
+      "--disable-plugins",
+    ],
+    executablePath: isVercel ? await chromium.executablePath() : undefined,
+    headless: true,
+  });
+
+  return persistentBrowser;
+}
+
+async function scrapeAttendance(username, password) {
+  const browser = await getBrowser();
   const page = await browser.newPage();
 
+  // Optimize page load
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.setDefaultNavigationTimeout(15000);
+  await page.setDefaultTimeout(10000);
+
   try {
+    // 1. Go to login
     await page.goto("https://erp.cbit.org.in/", {
       waitUntil: "domcontentloaded",
+      timeout: 12000,
     });
 
+    // Fill username + next
     await page.fill("#txtUserName", username);
     await page.click("#btnNext");
 
-    await page.waitForTimeout(1500);
+    // Smart wait
+    await page.waitForSelector("#txtPassword, #lblWarning", { timeout: 7000 });
 
-    const warning = await page.locator("#lblWarning").textContent().catch(() => "");
-
-    if (warning?.includes("User Name is Incorrect")) {
-      throw new Error("USERNAME_INCORRECT");
+    const usernameWarning = await page.locator("#lblWarning").textContent().catch(() => "");
+    if (usernameWarning.includes("User Name is Incorrect")) {
+      throw Object.assign(new Error("USERNAME_INCORRECT"), { code: "USERNAME_INCORRECT" });
     }
 
+    // Fill password + submit
     await page.fill("#txtPassword", password);
     await page.click("#btnSubmit");
 
-    await page.waitForTimeout(1500);
+    await page.waitForSelector("#lblWarning, #ctl00_cpStud_lnkStudentMain", { timeout: 10000 });
 
-    const passWarning = await page.locator("#lblWarning").textContent().catch(() => "");
-
-    if (passWarning?.includes("Password is Incorrect")) {
-      throw new Error("PASSWORD_INCORRECT");
+    const passwordWarning = await page.locator("#lblWarning").textContent().catch(() => "");
+    if (passwordWarning.includes("Password is Incorrect")) {
+      throw Object.assign(new Error("PASSWORD_INCORRECT"), { code: "PASSWORD_INCORRECT" });
     }
 
-    await page.waitForSelector("#ctl00_cpStud_lnkStudentMain");
+    // Navigate to attendance
     await page.click("#ctl00_cpStud_lnkStudentMain");
 
-    const studentName = await page.textContent(
-      "#ctl00_cpHeader_ucStud_lblStudentName"
-    );
+    await page.waitForSelector("#ctl00_cpStud_grdSubject", { timeout: 12000 });
 
-    await page.waitForSelector("#ctl00_cpStud_grdSubject");
+    // Extract data in one go
+    const [studentName, attendance] = await Promise.all([
+      page.textContent("#ctl00_cpHeader_ucStud_lblStudentName").catch(() => "Student"),
+      page.evaluate(() => {
+        const rows = document.querySelectorAll("#ctl00_cpStud_grdSubject tr");
+        const data = [];
+        rows.forEach((row) => {
+          const cols = row.querySelectorAll("td");
+          if (cols.length < 6) return;
+          data.push(Array.from(cols).map((c) => c.innerText.trim()));
+        });
+        return data;
+      }),
+    ]);
 
-    const attendance = await page.evaluate(() => {
-      const rows = document.querySelectorAll("#ctl00_cpStud_grdSubject tr");
-      const data = [];
+    return {
+      studentName: studentName.trim(),
+      attendance,
+      timestamp: new Date().toISOString(),
+    };
 
-      rows.forEach((r) => {
-        const cols = r.querySelectorAll("td");
-        if (cols.length === 0) return;
-
-        data.push(Array.from(cols).map((c) => c.innerText.trim()));
-      });
-
-      return data;
-    });
-
-    return { studentName, attendance };
+  } catch (err) {
+    if (!err.code) err.code = "SCRAPE_FAILED";
+    throw err;
   } finally {
-    await browser.close();
+    // Don't close page immediately — keep browser alive
+    await page.close().catch(() => { });
   }
 }
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  if (persistentBrowser) await persistentBrowser.close();
+});
 
 module.exports = scrapeAttendance;
