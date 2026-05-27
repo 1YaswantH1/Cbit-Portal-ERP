@@ -331,6 +331,7 @@ export default function Attendance() {
 
     // Show how long it took
     console.log(`Attendance fetched in ${(Date.now() - startTime) / 1000}s`);
+    // eslint-disable-next-line no-unused-vars
   } catch (err) {
     setErrorMsg("Something went wrong with ERP. Please try again.");
   } finally {
