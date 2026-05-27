@@ -1,5 +1,6 @@
 import "./App.css";
 import "animate.css";
+
 import Navbar from "./components/Navbar";
 import ClubsPage from "./pages/ClubsPages";
 import Holidays from "./pages/Holidays";
@@ -9,7 +10,8 @@ import Attendance from "./pages/Attendance";
 import Syllabus from "./pages/Syllabus";
 import Footer from "./pages/Footer";
 
-// import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
@@ -27,7 +29,10 @@ function App() {
         <Route path="/attendance" element={<Attendance />} />
         <Route path="*" element={<Navigate to="/attendance" />} />
       </Routes>
+
       <Footer />
+
+      <Analytics />
     </BrowserRouter>
   );
 }
