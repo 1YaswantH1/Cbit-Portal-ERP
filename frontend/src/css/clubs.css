@@ -214,3 +214,47 @@
     color: #666;
     margin-top: 6px;
 } */
+ /* Skeleton shimmer animation */
+ @keyframes shimmer {
+     0% {
+         background-position: -600px 0;
+     }
+
+     100% {
+         background-position: 600px 0;
+     }
+ }
+
+ .skeleton {
+     background: linear-gradient(90deg,
+             #e0e0e0 25%,
+             #f0f0f0 50%,
+             #e0e0e0 75%);
+     background-size: 600px 100%;
+     animation: shimmer 1.4s infinite linear;
+     border-radius: 6px;
+ }
+
+ .skeleton-card {
+     pointer-events: none;
+ }
+
+ .skeleton-image {
+     width: 100%;
+     /* Match your .club-image height */
+     aspect-ratio: 1 / 1;
+     border-radius: 8px;
+     margin-bottom: 12px;
+ }
+
+ .skeleton-title {
+     width: 70%;
+     height: 20px;
+     margin: 0 auto 12px;
+ }
+
+ .skeleton-button {
+     width: 80px;
+     height: 34px;
+     margin: 0 auto;
+ }
